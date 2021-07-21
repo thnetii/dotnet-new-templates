@@ -24,22 +24,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           persist-credentials: true
-      - name: Delete files in target directory
-        run: |
-          $TargetDirectory = Join-Path "src" "${{ matrix.template.name }}"
-          Remove-Item -Recurse -Force -ErrorAction Continue $TargetDirectory
-      - name: Invoke dotnet new ${{ matrix.template.invoke }}
-        shell: bash
-        run: dotnet new ${{ matrix.template.invoke }} -o "src/${{ matrix.template.name }}"
-      - name: Determine changes
-        id: detectChange
-        run: |
-          & git status --porcelain | Tee-Object -Variable GitStatus
-          if ($GitStatus) {
-            Write-Host "Git changes detected"
-            Write-Host "::set-output name=hasChanges::$true"
-          }
-          else {
-            Write-Host "Git changes detected"
-            Write-Host "::set-output name=hasChanges::$true"
-          }
+      - name: Run dotnet new bootstrap script
+        run: ./scripts/dotnet-new-bootstrap-matrix-leg.ps1
+        env:
+          TEMPLATE_OUTPUT_NAME: ${{ matrix.template.name }}
+          TEMPLATE_CLI_INVOKE: ${{ matrix.template.invoke }}
+          GITHUB_TOKEN: ${{ github.token }}
