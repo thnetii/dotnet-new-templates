@@ -31,4 +31,15 @@ jobs:
       - name: Invoke dotnet new ${{ matrix.template.invoke }}
         shell: bash
         run: dotnet new ${{ matrix.template.invoke }} -o "src/${{ matrix.template.name }}"
-
+      - name: Determine changes
+        id: detectChange
+        run: |
+          & git status --porcelain | Tee-Object -Variable GitStatus
+          if ($GitStatus) {
+            Write-Host "Git changes detected"
+            Write-Host "::set-output name=hasChanges::$true"
+          }
+          else {
+            Write-Host "Git changes detected"
+            Write-Host "::set-output name=hasChanges::$true"
+          }
