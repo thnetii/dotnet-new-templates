@@ -30,10 +30,16 @@ Write-Host "::group::Determine if changes have been made"
 [string]$GitStatus = $null
 & git status --porcelain | Tee-Object -Variable GitStatus
 if ($GitStatus) {
-    Write-Verbose "Git changes have been detected"
+    Write-Host "Git changes have been detected"
 }
 else {
-    Write-Verbose "No changes have been detected"
+    Write-Host "No changes have been detected"
     return
 }
+Write-Host "::endgroup::"
+
+# TODO: Check for existing PR and branch
+
+Write-Host "::group::Push changes to a branch"
+Write-Host $ENV:GITHUB_CONTEXT
 Write-Host "::endgroup::"

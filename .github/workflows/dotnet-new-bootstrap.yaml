@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 defaults:
   run:
@@ -30,3 +31,4 @@ jobs:
           TEMPLATE_OUTPUT_NAME: ${{ matrix.template.name }}
           TEMPLATE_CLI_INVOKE: ${{ matrix.template.invoke }}
           GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
