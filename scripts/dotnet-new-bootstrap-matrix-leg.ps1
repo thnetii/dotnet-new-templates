@@ -60,7 +60,7 @@ $TargetBranch = "workflows/workflow$WorkflowId/$OutputName"
 
 Write-Host "::group::Push changes to a branch"
 & git config --local user.name "github-actions[bot]"
-& git config --local user.email "noreply@github.com"
+& git config --local user.email "github-actions[bot]"
 & git add $TargetDirectory
 & git commit -m "Executed workflow $($GithubContext.workflow) for template with name $OutputName" `
     -m "Part of [workflow run $($GithubContext.run_id)]($($GithubActionsRunInfo.html_url))"
