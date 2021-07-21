@@ -2,7 +2,8 @@
 param (
     [string]$OutputName = $ENV:TEMPLATE_OUTPUT_NAME,
     [string]$CliTemplate = $ENV:TEMPLATE_CLI_INVOKE,
-    [securestring]$GithubToken = (ConvertTo-SecureString -AsPlainText $ENV:GITHUB_TOKEN)
+    [securestring]$GithubToken = (ConvertTo-SecureString -AsPlainText $ENV:GITHUB_TOKEN),
+    [string]$GithubContextJson = $ENV:GITHUB_CONTEXT
 )
 
 while (-not $OutputName) {
@@ -10,6 +11,13 @@ while (-not $OutputName) {
 }
 while (-not $CliTemplate) {
     $CliTemplate = Read-Host -Prompt CliTemplate
+}
+[psobject]$GithubContext = if ($GithubContextJson) {
+    ConvertFrom-Json $GithubContextJson
+}
+else { $null }
+if (-not $GithubToken) {
+    $GithubToken = ConvertTo-SecureString -AsPlainText $GithubContext.token
 }
 if (-not $GithubToken) {
     $GithubToken = Read-Host -Prompt GithubToken -AsSecureString
@@ -38,8 +46,22 @@ else {
 }
 Write-Host "::endgroup::"
 
+Write-Host "Request workflow id for current run with ID: $GithubActionsRunId"
+[PSObject]$GithubActionsRunInfo = $null
+Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Get `
+    "https://api.github.com/repos/$($GithubContext.repository)/actions/runs/$($GithubContext.run_id)" `
+    -Headers @{ Accept = "application/vnd.github.v3+json" } `
+    | Tee-Object -Variable GithubActionsRunInfo
+[long]$WorkflowId = $GithubActionsRunInfo.workflow_id
+Write-Host "Determined workflow id: $WorkflowId"
+$TargetBranch = "workflows/workflow$WorkflowId/$OutputName"
+
 # TODO: Check for existing PR and branch
 
 Write-Host "::group::Push changes to a branch"
-Write-Host $ENV:GITHUB_CONTEXT
+[PSObject]$GithubMeInfo = $null
+Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Get `
+    "https://api.github.com/user" `
+    -Headers @{ Accept = "application/vnd.github.v3+json" } `
+    | Tee-Object -Variable GithubMeInfo
 Write-Host "::endgroup::"
