@@ -1,9 +1,0 @@
-[submodule "github/gitignore"]
-	path = submodules/github/gitignore
-	url = https://github.com/github/gitignore.git
-[submodule "Dotnet-Boxed/Templates"]
-	path = submodules/Dotnet-Boxed/Templates
-	url = https://github.com/Dotnet-Boxed/Templates.git
-[submodule "thnetii/editorconfig-templates"]
-	path = submodules/thnetii/editorconfig-templates
-	url = https://github.com/thnetii/editorconfig-templates.git
