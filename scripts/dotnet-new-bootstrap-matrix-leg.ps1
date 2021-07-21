@@ -49,9 +49,9 @@ Write-Host "::endgroup::"
 Write-Host "Request workflow id for current run with ID: $GithubActionsRunId"
 [PSObject]$GithubActionsRunInfo = $null
 Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Get `
-    "https://api.github.com/repos/$($GithubContext.repository)/actions/runs/$($GithubContext.run_id)" `
+    "$($GithubContext.api_url)/repos/$($GithubContext.repository)/actions/runs/$($GithubContext.run_id)" `
     -Headers @{ Accept = "application/vnd.github.v3+json" } `
-    | Tee-Object -Variable GithubActionsRunInfo
+| Tee-Object -Variable GithubActionsRunInfo
 [long]$WorkflowId = $GithubActionsRunInfo.workflow_id
 Write-Host "Determined workflow id: $WorkflowId"
 $TargetBranch = "workflows/workflow$WorkflowId/$OutputName"
@@ -59,9 +59,37 @@ $TargetBranch = "workflows/workflow$WorkflowId/$OutputName"
 # TODO: Check for existing PR and branch
 
 Write-Host "::group::Push changes to a branch"
-[PSObject]$GithubMeInfo = $null
-Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Get `
-    "https://api.github.com/user" `
-    -Headers @{ Accept = "application/vnd.github.v3+json" } `
-    | Tee-Object -Variable GithubMeInfo
+& git config --local user.name "github-actions[bot]"
+& git config --local user.email "noreply@github.com"
+& git add $TargetDirectory
+& git commit -m "Executed workflow $($GithubContext.workflow) for template with name $OutputName" `
+    -m "Part of [workflow run $($GithubContext.run_id)]($($GithubActionsRunInfo.html_url))"
+& git push -f origin "HEAD:$TargetBranch"
+
+[PSObject]$GitHubPullRequestInfo = $null
+Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
+    "$($GithubContext.api_url)/repos/$($GithubContext.repository)/pulls" `
+    -ContentType "application/json; charset=utf-8" -Body (@{
+        title = "Update template content for $OutputName";
+        head  = $TargetBranch;
+        base  = $GithubContext.ref;
+        body  = @"
+While running the scheduled bootstrapping code for the template named ``$OutputName``
+the GitHub actions run detected that the code in the repository changed. This is
+indicative of that the .NET CLI template named ``$CliTemplate`` has been updated
+and therefore produced a different output than before.
+
+The changes shown here were created as part of a GitHub Action Workflow run. See
+$($GithubActionsRunInfo.html_url) for more details on that run.
+"@;
+    } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" } `
+| Tee-Object -Variable GitHubPullRequestInfo
+[long]$PullRequestNumber = $GitHubPullRequestInfo.number
+Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
+    "$($GithubContext.api_url)/repos/$($GithubContext.repository)/issues/$PullRequestNumber/labels" `
+    -ContentType "application/json; charset=utf-8" -Body (@{
+        labels = @(
+            "template-update", "dotnet-new"
+        )
+    } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" }
 Write-Host "::endgroup::"
