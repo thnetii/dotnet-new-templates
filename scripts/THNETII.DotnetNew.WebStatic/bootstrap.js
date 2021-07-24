@@ -52,7 +52,7 @@ fs.readFile(launchSettingsFilePath, { encoding: "utf8" }, (errRead, data) => {
   }
 
   let launchSettingsNewJson = JSON.stringify(launchSettingsCurrent, null, 2)
-  launchSettingsNewJson = launchSettingsNewJson.replaceAll("\n", EOL)
+  launchSettingsNewJson = launchSettingsNewJson.replace("\n", EOL)
   launchSettingsNewJson += EOL
   fs.writeFile(launchSettingsFilePath, launchSettingsNewJson, {
     encoding: "utf8"
