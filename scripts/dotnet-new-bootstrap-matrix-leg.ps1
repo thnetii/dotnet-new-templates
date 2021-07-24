@@ -23,8 +23,16 @@ if (-not $GithubToken) {
     $GithubToken = Read-Host -Prompt GithubToken -AsSecureString
 }
 
+$BootstrapScriptDirectory = Join-Path $PSScriptRoot $OutputName
 $TargetDirectory = Join-Path "src" $OutputName
 Write-Host "Target directory: $TargetDirectory"
+
+Write-Host "::group::preBoostrap: $OutputName"
+$PreBootstrapScriptFile = Join-Path $BootstrapScriptDirectory "preBootstrap.ps1"
+if (Test-Path -PathType Leaf $PreBootstrapScriptFile) {
+    & $PreBootstrapScriptFile
+}
+Write-Host "::endgroup"
 
 Write-Host "::group::Delete files in target directory"
 Remove-Item -Recurse -Force -ErrorAction Continue $TargetDirectory
@@ -32,6 +40,13 @@ Write-Host "::endgroup::"
 
 Write-Host "::group::Invoke dotnet new $CliTemplate"
 & dotnet new $CliTemplate -o $TargetDirectory
+Write-Host "::endgroup::"
+
+Write-Host "::group::boostrap: $OutputName"
+$BootstrapScriptFile = Join-Path $BootstrapScriptDirectory "bootstrap.ps1"
+if (Test-Path -PathType Leaf $BootstrapScriptFile) {
+    & $BootstrapScriptFile
+}
 Write-Host "::endgroup::"
 
 Write-Host "::group::Determine if changes have been made"
