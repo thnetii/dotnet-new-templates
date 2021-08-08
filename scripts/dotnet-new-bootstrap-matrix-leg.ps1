@@ -88,20 +88,8 @@ $TargetBranch = "workflows/workflow$WorkflowId/$OutputName"
     "head"  = $TargetBranch
 }
 [long]$PullRequestNumber = 0L
-if ($GithubExistingPulls) {
-    [PSObject]$GitHubPullRequestInfo = $GithubExistingPulls[0]
-    [long]$PullRequestNumber = $GitHubPullRequestInfo.number
-    & git push -f origin "HEAD:$TargetBranch"
-}
-else {
-    & git push -f origin "HEAD:$TargetBranch"
-    [PSObject]$GitHubPullRequestInfo = Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
-        "$($GithubContext.api_url)/repos/$($GithubContext.repository)/pulls" `
-        -ContentType "application/json; charset=utf-8" -Body (@{
-            title = "Update template content for $OutputName";
-            head  = $TargetBranch;
-            base  = $GithubContext.ref;
-            body  = @"
+$GitHubPrTitle = "Update template content for $OutputName"
+$GitHubPrBody = @"
 While running the scheduled bootstrapping code for the template named ``$OutputName``
 the GitHub actions run detected that the code in the repository changed. This is
 indicative of that the .NET CLI template named ``$CliTemplate`` has been updated
@@ -109,16 +97,36 @@ and therefore produced a different output than before.
 
 The changes shown here were created as part of a GitHub Action Workflow run. See
 $($GithubActionsRunInfo.html_url) for more details on that run.
-"@;
+"@
+if ($GithubExistingPulls) {
+    [PSObject]$GitHubPullRequestInfo = $GithubExistingPulls[0]
+    [long]$PullRequestNumber = $GitHubPullRequestInfo.number
+    & git push -f origin "HEAD:$TargetBranch"
+    [void](Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Patch `
+            "$($GithubContext.api_url)/repos/$($GithubContext.repository)/pulls/$PullRequestNumber" `
+            -ContentType "application/json; charset=utf-8" -Body (@{
+                title = $GitHubPrTitle;
+                body  = $GitHubPrBody;
+            } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" })
+}
+else {
+    & git push -f origin "HEAD:$TargetBranch"
+    [PSObject]$GitHubPullRequestInfo = Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
+        "$($GithubContext.api_url)/repos/$($GithubContext.repository)/pulls" `
+        -ContentType "application/json; charset=utf-8" -Body (@{
+            title = $GitHubPrTitle;
+            head  = $TargetBranch;
+            base  = $GithubContext.ref;
+            body  = $GitHubPrBody;
         } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" }
     [long]$PullRequestNumber = $GitHubPullRequestInfo.number
 }
 
-Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
-    "$($GithubContext.api_url)/repos/$($GithubContext.repository)/issues/$PullRequestNumber/labels" `
-    -ContentType "application/json; charset=utf-8" -Body (@{
-        labels = @(
-            "template-update", "dotnet-new"
-        )
-    } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" }
+[void](Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
+        "$($GithubContext.api_url)/repos/$($GithubContext.repository)/issues/$PullRequestNumber/labels" `
+        -ContentType "application/json; charset=utf-8" -Body (@{
+            labels = @(
+                "template-update", "dotnet-new"
+            )
+        } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" })
 Write-Host "::endgroup::"
