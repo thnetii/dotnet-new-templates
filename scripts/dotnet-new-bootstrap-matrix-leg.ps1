@@ -31,7 +31,7 @@ Write-Host "Target directory: $TargetDirectory"
 Write-Host "::group::preBoostrap: $OutputName"
 $PreBootstrapScriptFile = Join-Path $BootstrapScriptDirectory "preBootstrap.ps1"
 if (Test-Path -PathType Leaf $PreBootstrapScriptFile) {
-    & $PreBootstrapScriptFile
+    & $PreBootstrapScriptFile -ErrorAction $ErrorActionPreference
 }
 Write-Host "::endgroup"
 
@@ -46,7 +46,7 @@ Write-Host "::endgroup::"
 Write-Host "::group::boostrap: $OutputName"
 $BootstrapScriptFile = Join-Path $BootstrapScriptDirectory "bootstrap.ps1"
 if (Test-Path -PathType Leaf $BootstrapScriptFile) {
-    & $BootstrapScriptFile
+    & $BootstrapScriptFile -ErrorAction $ErrorActionPreference
 }
 Write-Host "::endgroup::"
 
