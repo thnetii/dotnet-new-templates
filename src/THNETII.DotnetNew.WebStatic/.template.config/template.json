@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Fredrik Høisæther Rasch",
+  "identity": "THNETII.DotnetNew.WebStatic",
+  "shortName": "ASP.NET Core Empty Static Pages",
+  "classifications": [
+    "Web/ASP.NET"
+  ],
+  "symbols": {
+    "iisApplicationUrlPort": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "fallback": 5000
+      },
+      "fileRename": "Properties/launchSettings.json",
+      "replaces": "iisApplicationUrlPort"
+    },
+    "iisExpressSslPort": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "fallback": 5001
+      },
+      "fileRename": "Properties/launchSettings.json",
+      "replaces": "9998979695"
+    }
+  }
+}
