@@ -13,3 +13,8 @@ $LaunchSettingsJsonFilePath = Join-Path $PropertiesDirectory "launchSettings.jso
 
 & sed -i -E 's/\"applicationUrl\":\s*\"http\:\/\/localhost\:([0-9]+)\"/\"applicationUrl\"\: \"http\:\/\/localhost:iisApplicationUrlPort\"/' $LaunchSettingsJsonFilePath
 & sed -i -E 's/\"sslPort\":\s*([0-9]+)/\"sslPort\"\: 9998979695/' $LaunchSettingsJsonFilePath
+
+### Create Template configuration folder
+$TemplateConfigDirectory = Join-Path $TargetDirectory ".template.config"
+New-Item -ItemType Directory $TemplateConfigDirectory -Force
+Copy-Item (Join-Path $PSScriptRoot "template.json") -Destination (Join-Path $TemplateConfigDirectory "template.json")
