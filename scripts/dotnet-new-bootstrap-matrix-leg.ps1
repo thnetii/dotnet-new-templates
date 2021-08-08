@@ -62,34 +62,46 @@ else {
 }
 Write-Host "::endgroup::"
 
+Write-Host "::group::Make commit and pull request"
 Write-Host "Request workflow id for current run with ID: $GithubActionsRunId"
-[PSObject]$GithubActionsRunInfo = $null
-Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Get `
+[PSObject]$GithubActionsRunInfo = Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Get `
     "$($GithubContext.api_url)/repos/$($GithubContext.repository)/actions/runs/$($GithubContext.run_id)" `
-    -Headers @{ Accept = "application/vnd.github.v3+json" } `
-| Tee-Object -Variable GithubActionsRunInfo
+    -Headers @{ Accept = "application/vnd.github.v3+json" }
 [long]$WorkflowId = $GithubActionsRunInfo.workflow_id
 Write-Host "Determined workflow id: $WorkflowId"
 $TargetBranch = "workflows/workflow$WorkflowId/$OutputName"
 
-# TODO: Check for existing PR and branch
-
-Write-Host "::group::Push changes to a branch"
+# Configure Git
 & git config --local user.name "github-actions[bot]"
 & git config --local user.email "github-actions[bot]"
+
+# Git commit
 & git add $TargetDirectory
 & git commit -m "Executed workflow $($GithubContext.workflow) for template with name $OutputName" `
     -m "Part of [workflow run $($GithubContext.run_id)]($($GithubActionsRunInfo.html_url))"
-& git push -f origin "HEAD:$TargetBranch"
 
-[PSObject]$GitHubPullRequestInfo = $null
-Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
+# Check for existing PR and branch
+[PSObject]$GithubExistingPulls = Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Get `
     "$($GithubContext.api_url)/repos/$($GithubContext.repository)/pulls" `
-    -ContentType "application/json; charset=utf-8" -Body (@{
-        title = "Update template content for $OutputName";
-        head  = $TargetBranch;
-        base  = $GithubContext.ref;
-        body  = @"
+    -Headers @{ Accept = "application/vnd.github.v3+json" } -Body @{
+    "state" = "open";
+    "head"  = $TargetBranch
+}
+[long]$PullRequestNumber = 0L
+if ($GithubExistingPulls) {
+    [PSObject]$GitHubPullRequestInfo = $GithubExistingPulls[0]
+    [long]$PullRequestNumber = $GitHubPullRequestInfo.number
+    & git push -f origin "HEAD:$TargetBranch"
+}
+else {
+    & git push -f origin "HEAD:$TargetBranch"
+    [PSObject]$GitHubPullRequestInfo = Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
+        "$($GithubContext.api_url)/repos/$($GithubContext.repository)/pulls" `
+        -ContentType "application/json; charset=utf-8" -Body (@{
+            title = "Update template content for $OutputName";
+            head  = $TargetBranch;
+            base  = $GithubContext.ref;
+            body  = @"
 While running the scheduled bootstrapping code for the template named ``$OutputName``
 the GitHub actions run detected that the code in the repository changed. This is
 indicative of that the .NET CLI template named ``$CliTemplate`` has been updated
@@ -98,9 +110,10 @@ and therefore produced a different output than before.
 The changes shown here were created as part of a GitHub Action Workflow run. See
 $($GithubActionsRunInfo.html_url) for more details on that run.
 "@;
-    } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" } `
-| Tee-Object -Variable GitHubPullRequestInfo
-[long]$PullRequestNumber = $GitHubPullRequestInfo.number
+        } | ConvertTo-Json) -Headers @{ Accept = "application/vnd.github.v3+json" }
+    [long]$PullRequestNumber = $GitHubPullRequestInfo.number
+}
+
 Invoke-RestMethod -Authentication Bearer -Token $GithubToken -Method Post `
     "$($GithubContext.api_url)/repos/$($GithubContext.repository)/issues/$PullRequestNumber/labels" `
     -ContentType "application/json; charset=utf-8" -Body (@{
