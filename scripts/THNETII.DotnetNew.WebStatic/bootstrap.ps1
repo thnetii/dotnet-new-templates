@@ -7,5 +7,9 @@ param (
 
 $TargetDirectory = Join-Path "src" $OutputName
 
-$BootstrapJsFile = Join-Path $PSScriptRoot "bootstrap.js"
-& node $BootstrapJsFile
+### Fix dynamic random port allocation in Properties/launchSettings.json
+$PropertiesDirectory = Join-Path $TargetDirectory "Properties"
+$LaunchSettingsJsonFilePath = Join-Path $PropertiesDirectory "launchSettings.json"
+
+& sed -i -E 's/\"applicationUrl\":\s*\"http\:\/\/localhost\:([0-9]+)\"/\"applicationUrl\"\: \"http\:\/\/localhost:iisApplicationUrlPort\"/' $LaunchSettingsJsonFilePath
+& sed -i -E 's/\"sslPort\":\s*([0-9]+)/\"sslPort\"\: 9998979695/' $LaunchSettingsJsonFilePath
