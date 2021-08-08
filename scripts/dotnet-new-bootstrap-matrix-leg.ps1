@@ -1,3 +1,4 @@
+#Requires -Version 6.0
 [CmdletBinding()]
 param (
     [string]$OutputName = $ENV:TEMPLATE_OUTPUT_NAME,
