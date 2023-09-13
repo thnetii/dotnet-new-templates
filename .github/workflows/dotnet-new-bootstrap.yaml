@@ -22,7 +22,7 @@ jobs:
     name: ${{ matrix.template.name }}
     steps:
       - name: Chekout ${{ github.repository }}@${{ github.ref }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           persist-credentials: true
       - name: Run dotnet new bootstrap script
